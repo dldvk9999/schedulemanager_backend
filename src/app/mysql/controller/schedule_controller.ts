@@ -12,33 +12,53 @@ exports.create = (req, res) => {
     const token = req.body.jwt;
     const login_check = login_check_func(token);
     if (login_check.status) {
-        // file check
-        let filename;
+        let totalFilename = new Array();
+        let filename: string;
         let email = login_check.email;
+        // file check
         if (req.files) {
-            const file = req.files.file;
-            filename = file.name;
-    
-            if (file.size > 1 * 1024 * 1024 * 1024) {
-                res.send({
-                    status: false,
-                    message: 'Payload too large.',
-                    print: true
-                });
-            }
-    
-            if (!fs.existsSync('./uploads/' + email)){
-                fs.mkdirSync('./uploads/' + email);
-            }
-            file.mv('./uploads/' + email + '/' + filename, function (error) {
-                if (error) {
-                    res.send({
-                        status: false,
-                        message: 'Error while uploading file',
-                        print: true
+            const files = Object.prototype.toString.call(req.files.file).slice(8,-1) != 'Array' ? [req.files.file] : req.files.file;
+            for(let i=0; i<files.length; i++) {
+                const file = files[i];
+                filename = file.name;
+        
+                // file size check
+                if (file.size > 1 * 1024 * 1024 * 1024) {
+                    res.status(400).send({
+                        message: 'Payload too large. \"' + filename + '\" (MAX : 1GB)'
                     });
+                    return;
                 }
-            });
+                
+                // file name check
+                if (filename.includes(",")) {
+                    res.status(400).send({
+                        message: 'File names cannot contain "," : ' + filename
+                    });
+                    return;
+                }
+
+                // file folder and exist check
+                const date = new Date(req.body.startdate).toLocaleDateString().replace(" ", "").replace(" ", "");
+                if (!fs.existsSync('./uploads/' + email + '/' + date)){
+                    fs.mkdirSync('./uploads/' + email + '/' + date, {recursive: true}, err => { console.log(err)});
+                } else if (fs.existsSync('./uploads/' + email + '/' + date + '/' + filename)) {
+                    res.status(400).send({
+                        message: filename + ' already exist!'
+                    });
+                    return;
+                } else {
+                    file.mv('./uploads/' + email + '/' + date + '/' + filename, function (error) {
+                        if (error) {
+                            res.status(400).send({
+                                message: 'Error while uploading file'
+                            });
+                            return;
+                        }
+                    });
+                    totalFilename.push(filename);
+                }
+            };
         }
 
         // Validate request
@@ -61,7 +81,7 @@ exports.create = (req, res) => {
             again: req.body.again ? req.body.again : null,
             locate: req.body.locate ? req.body.locate : null,
             color: req.body.color ? req.body.color : 0,
-            file: req.files ? '/' + email + '/' + filename : null
+            file: req.files ? totalFilename.join(",") : null
         };
 
         // Save tutorial
@@ -69,20 +89,16 @@ exports.create = (req, res) => {
             .create(schedule)
             .then(_ => {
                 res.send({ 
-                    status: true, 
-                    message: 'Schedule Create Success',
-                    print: false
+                    message: 'Schedule Create Success'
                 });
             })
             .catch(err => {
-                res.send({
-                    status: false,
-                    message: err.message || 'Create schedule failure.',
-                    print: true
+                res.status(400).send({
+                    message: err.message || 'Create schedule failure.'
                 });
             });
     } else {
-        res.send({ status: false, data: login_check.data, print: true });
+        res.status(400).send({ message: login_check.data });
     }
 };
 
@@ -92,40 +108,58 @@ exports.update = (req, res) => {
     const token = req.body.jwt;
     const login_check = login_check_func(token);
     if (login_check.status) {
-        // file check
+        let totalFilename = new Array();
         let filename;
         let email = login_check.email;
+        // file check
         if (req.files) {
-            const file = req.files.file;
-            filename = file.name;
-    
-            if (file.size > 1 * 1024 * 1024 * 1024) {
-                res.send({
-                    status: false,
-                    message: 'Payload too large.',
-                    print: true
-                });
-            }
-    
-            if (!fs.existsSync('./uploads/' + email)){
-                fs.mkdirSync('./uploads/' + email);
-            }
-            file.mv('./uploads/' + email + '/' + filename, function (error) {
-                if (error) {
-                    res.send({
-                        status: false,
-                        message: 'Error while uploading file',
-                        print: true
+            const files = Object.prototype.toString.call(req.files.file).slice(8,-1) != 'Array' ? [req.files.file] : req.files.file;
+            for(let i=0; i<files.length; i++) {
+                const file = files[i];
+                filename = file.name;
+
+                // file size check
+                if (file.size > 1 * 1024 * 1024 * 1024) {
+                    res.status(400).send({
+                        message: 'Payload too large. \"' + filename + '\" (MAX : 1GB)'
                     });
+                    return;
                 }
-            });
+                
+                // file name check
+                if (filename.includes(",")) {
+                    res.status(400).send({
+                        message: 'File names cannot contain "," : ' + filename
+                    });
+                    return;
+                }
+
+                // file folder and exist check
+                const date = new Date(req.body.startdate).toLocaleDateString().replace(" ", "").replace(" ", "");
+                if (!fs.existsSync('./uploads/' + email + '/' + date)){
+                    fs.mkdirSync('./uploads/' + email + '/' + date, {recursive: true}, err => { console.log(err)});
+                } else if (fs.existsSync('./uploads/' + email + '/' + date + '/' + filename)) {
+                    res.status(400).send({
+                        message: filename + ' already exist!'
+                    });
+                    return;
+                } else {
+                    file.mv('./uploads/' + email + '/' + date + '/' + filename, function (error) {
+                        if (error) {
+                            res.status(400).send({
+                                message: 'Error while uploading file'
+                            });
+                            return;
+                        }
+                    });
+                    totalFilename.push(filename);
+                }
+            };
         }
 
         // Validate request
         if (!req.body.startdate || !req.body.enddate || !req.body.title) {
-            res.status(400).send({
-                message: 'Require text is empty!'
-            });
+            res.status(400).send({ message: 'Require text is empty!' });
             return;
         };
 
@@ -141,7 +175,7 @@ exports.update = (req, res) => {
             again: req.body.again ? req.body.again : null,
             locate: req.body.locate ? req.body.locate : null,
             color: req.body.color ? req.body.color : 0,
-            file: req.files ? '/' + email + '/' + filename : null
+            file: req.files ? totalFilename.join(",") : null
         };
         let option = { where: { user: email, id: req.body.id } };
 
@@ -157,27 +191,38 @@ exports.update = (req, res) => {
                         message: 'User updated.'
                     });
                 } else {
-                    res.send({
+                    res.status(400).send({
                         message: 'Cannot update user. (email: ' + email + ')',
                         resultCount: resultCount
                     });
                 }
             })
             .catch(err => {
-                res.status(500).send({
+                res.status(400).send({
                     message: err.message || 'Update user failure. (email: ' + email + ')'
                 });
             });
     } else {
-        res.send({ status: false, data: login_check.data, print: true });
+        res.status(400).send({ message: login_check.data });
     }
 };
 
+//Schedule Get
 exports.get = (req, res) => {
     let token = req.body.jwt;
     const login_check = login_check_func(token);
     if (login_check.status) {
         let condition = { where: {} };
+        const y = Number(req.body.year);
+        const m = Number(req.body.month);
+        let sdate = {
+            year: m - 2 <= 0 ? y - 1 : y,
+            month: m - 2 <= 0 ? m + 10 : m - 2
+        }
+        let edate = {
+            year: m + 1 > 12 ? y + 1 : y,
+            month: m + 1 > 12 ? 1 : m + 1
+        }
 
         if (login_check.email) {
             condition = {
@@ -186,6 +231,12 @@ exports.get = (req, res) => {
                         {
                             user: {
                                 [Op.like]: `${login_check.email}`
+                            },
+                            startdate: {
+                                [Op.gt]: new Date(sdate.year, sdate.month)
+                            },
+                            enddate: {
+                                [Op.lt]: new Date(edate.year, edate.month)
                             }
                         }
                     ]
@@ -199,14 +250,12 @@ exports.get = (req, res) => {
                 res.send(data);
             })
             .catch(err => {
-                res.status(500).send({
-                    status: false,
-                    message: err.message || 'Get schedule failure.',
-                    print: true
+                res.status(400).send({
+                    message: err.message || 'Get schedule failure.'
                 });
             });
     } else {
-        res.send({ status: false, data: login_check.data, print: true });
+        res.status(400).send({ message: login_check.data });
     }
 }
 
@@ -227,18 +276,33 @@ exports.delete = (req, res) => {
                         message: 'Schedule deleted.'
                     });
                 } else {
-                    res.send({
+                    res.status(400).send({
                         message: 'Cannot delete schedule.'
                     });
                 }
             })
             .catch(err => {
-                res.status(500).send({
+                res.status(400).send({
                     message: err.message || 'Delete schedule failure.'
                 });
             });
+    } else {
+        res.status(400).send({ message: login_check.data });
     }
 };
+
+exports.filedownload = (req, res) => {
+    // jwt check
+    const token = req.body.jwt;
+    const login_check = login_check_func(token);
+    if (login_check.status) {
+        const email = login_check.email;
+        const date = req.body.date;
+        const filename = req.body.filename;
+
+        res.download("/uploads/" + email + "/" + date + "/", filename); 
+    }
+}
 
 function login_check_func(token) {
     let token_ = token;

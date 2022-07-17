@@ -24,7 +24,7 @@ router.post('/api/user/logout', user.logout);
 router.put('/api/user/:email', user.update);
 
 // User Delete
-router.delete('/api/user/:email', user.delete);
+router.delete('/api/user', user.delete);
 
 // Schedule Create
 router.post('/api/schedule', schedule.create);
@@ -37,5 +37,8 @@ router.delete('/api/schedule', schedule.delete);
 
 // Schedule Search
 router.post('/api/schedule/get', schedule.get);
+
+// Schedule file download
+router.post('/api/schedule/file', schedule.filedownload);
 
 module.exports = router;

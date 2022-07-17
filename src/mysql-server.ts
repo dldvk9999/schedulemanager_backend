@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 3000;
 
 // Set CORS option
 app.use(cors());
+app.set('trust proxy',1)
 
 // Parse requests of content-type: application/json
 app.use(bodyParser.json());

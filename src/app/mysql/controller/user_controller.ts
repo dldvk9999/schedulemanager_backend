@@ -9,9 +9,19 @@ const Op = dbInfo.sequelize.Op;
 // Create tutorial
 exports.create = (req, res) => {
     // Validate request
-    if (!req.body.email || !req.body.password || !req.body.usertype) {
+    if (!req.body.email || !req.body.password1 || !req.body.password2 || !req.body.usertype || !req.body.name || !req.body.deptname) {
         res.status(400).send({
             message: 'Require text is empty!'
+        });
+        return;
+    } else if (req.body.password1 != req.body.password2) {
+        res.status(400).send({
+            message: 'Password is different!'
+        });
+        return;
+    } else if (!new RegExp("^[a-zA-Z0-9._+=^*~,]+@([a-zA-Z]+[.]+)+[a-zA-Z]+$").test(req.body.email)) {
+        res.status(400).send({
+            message: 'Check email!'
         });
         return;
     }
@@ -38,12 +48,12 @@ exports.create = (req, res) => {
         .findAll(condition)
         .then(result => {
             if (result.length >= 1) {
-                res.status(400).send({ status: false, data: 'you are already signup!', print: true })
+                res.status(400).send({ message: 'you are already signup!' })
             } else {
                 // Set tutorial
                 const user = {
                     email: req.body.email,
-                    password: crypt.createHash('sha512').update(req.body.password).digest('hex'),
+                    password: crypt.createHash('sha512').update(req.body.password1).digest('hex'),
                     usertype: req.body.usertype,
                     name: req.body.name ? req.body.name : "Anonymous",
                     deptname: req.body.deptname,
@@ -59,14 +69,14 @@ exports.create = (req, res) => {
                         res.send(data);
                     })
                     .catch(err => {
-                        res.status(500).send({
+                        res.status(400).send({
                             message: err.message || 'Create user failure.'
                         });
                     });
             }
         })
         .catch(err => {
-            res.status(400).send({ status: false, data: err.message, print: true })
+            res.status(400).send({ message: err.message })
         })
 };
 
@@ -78,24 +88,25 @@ exports.findAll = (req, res) => {
         User
             .findAll()
             .then(result => {
-                const data = [];
+                const data = [{}];
                 result.forEach(element => {
                     const tmp = {
                         email: element.email,
                         name: element.name,
                         usertype: element.usertype
-                    }
-                    data.push(...[tmp]);
-                }); 
+                    };
+                    data.push(tmp);
+                });
+                data.shift();
                 res.send(data);
             })
             .catch(err => {
-                res.send({
+                res.status(400).send({
                     message: err.message || 'Retrieve all users failure.'
                 });
             });
     } else {
-        res.send({ status: false, data: 'you are not admin!', print: true });
+        res.status(400).send({ message: 'you are not admin!' });
     }
 };
 
@@ -112,7 +123,7 @@ exports.findOne = (req, res) => {
                 res.send(result);
             })
             .catch(err => {
-                res.status(500).send({
+                res.status(400).send({
                     message: err.message || 'Retrieve user failure. (keyword: ' + login_check.email + ')'
                 });
             });
@@ -129,19 +140,19 @@ exports.login = (req, res) => {
         .findOne(option)
         .then(result => {
             if(result == null) {
-                res.send({
+                res.status(401).send({
                     message: "이메일 혹은 비밀번호가 일치하지 않습니다."
                 });
             } else {
                 const token = jwt.sign({email: email, time: Date.now(), usertype: result.usertype}, key);
                 res.cookie('jwt', token, {
                     maxAge: 1000 * 60 * 60,
-                    secure: true,
+                    secure: true
                 }).send(token);
             }
         })
         .catch(err => {
-            res.send({
+            res.status(400).send({
                 message: err.message || 'Retrieve user failure.'
             });
         });
@@ -156,9 +167,9 @@ exports.login_check = (req, res) => {
         res.cookie('jwt', result['data'], {
             maxAge: 1000 * 60 * 60,
             secure: true,
-          }).json({ status: true, data: result['data'], print: false });
+          });
     } else {
-        res.json({ status: false, data: result['data'], print: false });
+        res.status(400).send({ message: result['data'] });
     }
 }
 
@@ -193,14 +204,14 @@ exports.update = (req, res) => {
                     message: 'User updated.'
                 });
             } else {
-                res.send({
+                res.status(400).send({
                     message: 'Cannot update user. (email: ' + email + ')',
                     resultCount: resultCount
                 });
             }
         })
         .catch(err => {
-            res.status(500).send({
+            res.status(400).send({
                 message: err.message || 'Update user failure. (email: ' + email + ')'
             });
         });
@@ -208,37 +219,40 @@ exports.update = (req, res) => {
 
 // Delete tutorial by email
 exports.delete = (req, res) => {
-    const email = req.params.email;
-    const condition = { where: { email: email } };
-
-    User
-        .destroy(condition)
-        .then(resultCount => {
-            if (resultCount == 1) {
-                res.send({
-                    message: 'User deleted.'
+    const token = req.body.jwt;
+    let login_check = login_check_func(token);
+    if(login_check['status']) {
+        const email = login_check.email;
+        const condition = { where: { email: email } };
+        User
+            .destroy(condition)
+            .then(resultCount => {
+                if (resultCount == 1) {
+                    res.clearCookie('jwt').send({
+                        message: 'User deleted.'
+                    });
+                } else {
+                    res.status(400).send({
+                        message: 'Cannot delete user. (email: ' + email + ')'
+                    });
+                }
+            })
+            .catch(err => {
+                res.status(400).send({
+                    message: err.message || 'Delete user failure. (email: ' + email + ')'
                 });
-            } else {
-                res.send({
-                    message: 'Cannot delete user. (email: ' + email + ')'
-                });
-            }
-        })
-        .catch(err => {
-            res.status(500).send({
-                message: err.message || 'Delete user failure. (email: ' + email + ')'
             });
-        });
+    }
 };
 
 
 function login_check_func(token) {
     let token_ = token;
     if (!token_) {
-        return { status: false, data: "none token", print: false };
+        return { status: false, data: "none token", print: false, email: '' };
     }
 
-    let message = { status: false, data: '', print: true, usertype: '' };
+    let message = { status: false, data: '', print: true, usertype: '', email: '' };
     jwt.verify(token_, key, (err, decode) => {
         if (err || decode.email == "") {
             message['data'] = err.message;
