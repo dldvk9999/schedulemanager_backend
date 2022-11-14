@@ -1,13 +1,27 @@
+// module.exports = {
+//     host: "qvti2nukhfiig51b.cbetxkdyhwsb.us-east-1.rds.amazonaws.com",
+//     username: "w29fd2k10o6hzacc",
+//     password: "ux0tcq81oce4mzpv",
+//     db: "kaghvnvtss2tc3e4",
+//     dialect: "mysql",
+//     pool: {
+//         max: 5,
+//         min: 0,
+//         acquire: 30000,
+//         idle: 10000,
+//     },
+// };
+
 module.exports = {
-    host: 'm7az7525jg6ygibs.cbetxkdyhwsb.us-east-1.rds.amazonaws.com',
-    username: 'a5j7p1yarp1j1bcv',
-    password: 'xuutnwx6vwar6ut3',
-    db: 'lzyjdz4ochz3j61y',
-    dialect: 'mysql',
+    host: "localhost",
+    username: "root",
+    password: "whdrms6533@",
+    db: "schedulemanager",
+    dialect: "mysql",
     pool: {
         max: 5,
         min: 0,
         acquire: 30000,
-        idle: 10000
-    }
+        idle: 10000,
+    },
 };
